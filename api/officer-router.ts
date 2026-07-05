@@ -1,17 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
 
-const DEMO_OFFICERS = [
-  { id: 1, badgeNumber: "4521", firstName: "Mohamed", lastName: "Hassan", rank: "colonel", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 12 34 56", email: "m.hassan@pnd.gov.dj", status: "active", joinDate: "2015-03-15", createdAt: new Date("2015-03-15") },
-  { id: 2, badgeNumber: "3187", firstName: "Ahmed", lastName: "Omar", rank: "brigadier", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 23 45 67", email: "a.omar@pnd.gov.dj", status: "active", joinDate: "2018-07-22", createdAt: new Date("2018-07-22") },
-  { id: 3, badgeNumber: "7214", firstName: "Fatima", lastName: "Daher", rank: "chief_inspector", stationId: 2, stationName: "Poste de Police Balbala", phone: "+253 77 34 56 78", email: "f.daher@pnd.gov.dj", status: "active", joinDate: "2016-11-08", createdAt: new Date("2016-11-08") },
-  { id: 4, badgeNumber: "1845", firstName: "Ismail", lastName: "Robleh", rank: "inspector", stationId: 3, stationName: "Poste de Police Plateau", phone: "+253 77 45 67 89", email: "i.robleh@pnd.gov.dj", status: "active", joinDate: "2021-01-10", createdAt: new Date("2021-01-10") },
-  { id: 5, badgeNumber: "6392", firstName: "Ayaan", lastName: "Guelleh", rank: "superintendent", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 56 78 90", email: "a.guelleh@pnd.gov.dj", status: "on_leave", joinDate: "2017-05-30", createdAt: new Date("2017-05-30") },
-  { id: 6, badgeNumber: "5103", firstName: "Yacin", lastName: "Bourhan", rank: "sergeant", stationId: 2, stationName: "Poste de Police Balbala", phone: "+253 77 67 89 01", email: "y.bourhan@pnd.gov.dj", status: "active", joinDate: "2019-09-14", createdAt: new Date("2019-09-14") },
-  { id: 7, badgeNumber: "2478", firstName: "Hodan", lastName: "Kamil", rank: "inspector", stationId: 4, stationName: "Poste de Police Ali Sabieh", phone: "+253 77 78 90 12", email: "h.kamil@pnd.gov.dj", status: "active", joinDate: "2022-03-01", createdAt: new Date("2022-03-01") },
-  { id: 8, badgeNumber: "8631", firstName: "Said", lastName: "Egueh", rank: "brigadier", stationId: 5, stationName: "Poste de Police Tadjourah", phone: "+253 77 89 01 23", email: "s.egueh@pnd.gov.dj", status: "suspended", joinDate: "2014-12-20", createdAt: new Date("2014-12-20") },
-];
-
+// ─── STATIONS & DISTRICTS ───
 const DEMO_STATIONS = [
   { id: 1, name: "Commissariat Central", code: "CC-01", districtId: 1, address: "Boulevard de la Republique, Djibouti City", phone: "+253 21 35 20 00", type: "central", isActive: true },
   { id: 2, name: "Poste de Police Balbala", code: "PB-02", districtId: 1, address: "Rue de Balbala, Djibouti City", phone: "+253 21 35 21 00", type: "station", isActive: true },
@@ -26,6 +16,23 @@ const DEMO_DISTRICTS = [
   { id: 3, name: "Tadjourah", code: "TD-NOR", region: "Tadjourah Region", description: "Northern coastal district" },
   { id: 4, name: "Obock", code: "OB-NOR", region: "Obock Region", description: "Northern gulf district" },
 ];
+
+// ─── OFFICER DATA with authCode ───
+let DEMO_OFFICERS = [
+  { id: 1, badgeNumber: "4521", authCode: "4521", firstName: "Mohamed", lastName: "Hassan", rank: "colonel", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 12 34 56", email: "m.hassan@pnd.gov.dj", status: "active", joinDate: "2015-03-15", createdAt: new Date("2015-03-15") },
+  { id: 2, badgeNumber: "3187", authCode: "3187", firstName: "Ahmed", lastName: "Omar", rank: "brigadier", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 23 45 67", email: "a.omar@pnd.gov.dj", status: "active", joinDate: "2018-07-22", createdAt: new Date("2018-07-22") },
+  { id: 3, badgeNumber: "7214", authCode: "7214", firstName: "Fatima", lastName: "Daher", rank: "chief_inspector", stationId: 2, stationName: "Poste de Police Balbala", phone: "+253 77 34 56 78", email: "f.daher@pnd.gov.dj", status: "active", joinDate: "2016-11-08", createdAt: new Date("2016-11-08") },
+  { id: 4, badgeNumber: "1845", authCode: "1845", firstName: "Ismail", lastName: "Robleh", rank: "inspector", stationId: 3, stationName: "Poste de Police Plateau", phone: "+253 77 45 67 89", email: "i.robleh@pnd.gov.dj", status: "active", joinDate: "2021-01-10", createdAt: new Date("2021-01-10") },
+  { id: 5, badgeNumber: "6392", authCode: "6392", firstName: "Ayaan", lastName: "Guelleh", rank: "superintendent", stationId: 1, stationName: "Commissariat Central", phone: "+253 77 56 78 90", email: "a.guelleh@pnd.gov.dj", status: "on_leave", joinDate: "2017-05-30", createdAt: new Date("2017-05-30") },
+  { id: 6, badgeNumber: "5103", authCode: "5103", firstName: "Yacin", lastName: "Bourhan", rank: "sergeant", stationId: 2, stationName: "Poste de Police Balbala", phone: "+253 77 67 89 01", email: "y.bourhan@pnd.gov.dj", status: "active", joinDate: "2019-09-14", createdAt: new Date("2019-09-14") },
+  { id: 7, badgeNumber: "2478", authCode: "2478", firstName: "Hodan", lastName: "Kamil", rank: "inspector", stationId: 4, stationName: "Poste de Police Ali Sabieh", phone: "+253 77 78 90 12", email: "h.kamil@pnd.gov.dj", status: "active", joinDate: "2022-03-01", createdAt: new Date("2022-03-01") },
+  { id: 8, badgeNumber: "8631", authCode: "8631", firstName: "Said", lastName: "Egueh", rank: "brigadier", stationId: 5, stationName: "Poste de Police Tadjourah", phone: "+253 77 89 01 23", email: "s.egueh@pnd.gov.dj", status: "suspended", joinDate: "2014-12-20", createdAt: new Date("2014-12-20") },
+];
+
+// Generate random auth code
+function generateAuthCode(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
 export const officerRouter = createRouter({
   list: publicQuery
@@ -63,15 +70,17 @@ export const officerRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       const station = DEMO_STATIONS.find(s => s.id === input.stationId);
+      const authCode = generateAuthCode();
       const newOfficer = {
         id: DEMO_OFFICERS.length + 1,
         ...input,
-        status: "active",
+        authCode,
+        status: "active" as const,
         stationName: station?.name || "Unknown",
         createdAt: new Date(),
       };
       DEMO_OFFICERS.push(newOfficer);
-      return newOfficer;
+      return { ...newOfficer, message: `Officer created. Auth code: ${authCode}` };
     }),
 
   update: publicQuery
@@ -119,3 +128,6 @@ export const officerRouter = createRouter({
     return { total, active, onLeave, suspended };
   }),
 });
+
+// Export for boot.ts
+export { DEMO_OFFICERS, DEMO_STATIONS };

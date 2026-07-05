@@ -1,7 +1,7 @@
 import { trpc } from "@/providers/trpc";
 import {
   FileText, Shield, AlertTriangle, CheckCircle,
-  TrendingUp, Activity
+  TrendingUp, FileCheck, Clock, UserPlus
 } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, color, trend }: any) {
@@ -27,9 +27,11 @@ function StatCard({ icon: Icon, label, value, color, trend }: any) {
 export default function Dashboard() {
   const statsQuery = trpc.report.stats.useQuery();
   const officerStatsQuery = trpc.officer.stats.useQuery();
+  const recentReportsQuery = trpc.report.list.useQuery({ limit: 10 });
 
   const stats = statsQuery.data;
   const officerStats = officerStatsQuery.data;
+  const recentReports = recentReportsQuery.data?.reports || [];
 
   const totalReports = stats?.total || 0;
   const todayReports = stats?.today || 0;
@@ -39,6 +41,20 @@ export default function Dashboard() {
   const pendingCount = stats?.byStatus?.find((s: any) => s.status === "submitted")?.count || 0;
   const approvedCount = stats?.byStatus?.find((s: any) => s.status === "approved")?.count || 0;
   const reviewCount = stats?.byStatus?.find((s: any) => s.status === "under_review")?.count || 0;
+
+  const statusIcon = (status: string) => {
+    if (status === "approved") return FileCheck;
+    if (status === "submitted") return FileText;
+    if (status === "under_review") return Clock;
+    return FileText;
+  };
+
+  const statusColor = (status: string) => {
+    if (status === "approved") return "text-green-600";
+    if (status === "submitted") return "text-blue-600";
+    if (status === "under_review") return "text-amber-600";
+    return "text-gray-600";
+  };
 
   return (
     <div className="space-y-6">
@@ -132,25 +148,37 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Reports — REAL DATA */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900 mb-4">Recent Activity</h3>
-        <div className="space-y-3">
-          {[
-            { action: "Report approved", item: "RPT-2025-0042", user: "Col. Mohamed Hassan", time: "2 min ago", icon: CheckCircle, color: "text-green-600" },
-            { action: "Report submitted", item: "RPT-2025-0043", user: "Brig. Ahmed Omar", time: "15 min ago", icon: FileText, color: "text-blue-600" },
-            { action: "Officer assigned", item: "UR-4521", user: "Admin", time: "1 hr ago", icon: Shield, color: "text-purple-600" },
-            { action: "Audit log export", item: "System", user: "Super Admin", time: "3 hrs ago", icon: Activity, color: "text-gray-600" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-              <item.icon className={`w-4 h-4 ${item.color}`} />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{item.action} — <span className="font-mono text-blue-800">{item.item}</span></p>
-                <p className="text-xs text-gray-500">by {item.user} — {item.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900 mb-4">Recent Reports</h3>
+        {recentReports.length === 0 ? (
+          <p className="text-sm text-gray-400">Loading reports...</p>
+        ) : (
+          <div className="space-y-3">
+            {recentReports.slice(0, 8).map((report: any) => {
+              const Icon = statusIcon(report.status);
+              return (
+                <div key={report.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <Icon className={`w-4 h-4 ${statusColor(report.status)}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {report.reportId} — <span className="text-gray-600">{report.location}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {report.severity} • {report.weather} • {report.accidentDate}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                    report.status === "approved" ? "bg-green-100 text-green-700" :
+                    report.status === "submitted" ? "bg-blue-100 text-blue-700" :
+                    report.status === "under_review" ? "bg-amber-100 text-amber-700" :
+                    "bg-gray-100 text-gray-700"
+                  }`}>{report.status.replace("_", " ")}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,8 @@
 import { z } from "zod";
-import { eq, desc, and, gte, lte, like, count } from "drizzle-orm";
 import { createRouter, publicQuery } from "./middleware";
-import { getDb } from "./queries/connection";
-import {
-  accidentReports, vehicles, drivers, victims, witnesses, evidence, measurements,
-} from "../db/schema";
 
 // ─── REALISTIC DEMO DATA ───
-const DEMO_REPORTS = [
+export let DEMO_REPORTS = [
   { id: 1, reportId: "RPT-2025-0038", location: "Boulevard de la Republique, near Total station", latitude: 11.5721, longitude: 43.1456, accidentDate: "2026-07-05", accidentTime: "08:30", severity: "serious", status: "submitted", weather: "Clear", roadCondition: "Dry", accidentType: "head_on_collision", description: "Head-on collision between two taxis at intersection. Both vehicles sustained heavy damage.", officerId: 1, stationId: 1, createdBy: 1, createdAt: new Date("2026-07-05T08:45:00"), updatedAt: new Date("2026-07-05T08:45:00") },
   { id: 2, reportId: "RPT-2025-0037", location: "Route de l'Aeroport, km 5", latitude: 11.5480, longitude: 43.1600, accidentDate: "2026-07-04", accidentTime: "14:15", severity: "fatal", status: "approved", weather: "Khamsin Wind", roadCondition: "Sand Dust Debris", accidentType: "rollover", description: "Truck rollover due to strong crosswinds. Cargo spilled across roadway. One fatality confirmed.", officerId: 2, stationId: 1, createdBy: 1, createdAt: new Date("2026-07-04T14:30:00"), updatedAt: new Date("2026-07-04T16:00:00") },
   { id: 3, reportId: "RPT-2025-0036", location: "Rue de Balbala, market entrance", latitude: 11.5900, longitude: 43.1200, accidentDate: "2026-07-04", accidentTime: "11:45", severity: "moderate", status: "under_review", weather: "Clear", roadCondition: "Dry", accidentType: "pedestrian_strike", description: "Pedestrian struck by motorcycle in market area. Victim transported to Peltier Hospital.", officerId: 3, stationId: 2, createdBy: 1, createdAt: new Date("2026-07-04T12:00:00"), updatedAt: new Date("2026-07-04T12:00:00") },
@@ -122,5 +117,13 @@ export const reportRouter = createRouter({
       const report = DEMO_REPORTS.find(r => r.id === input.id);
       if (report) report.status = input.status as any;
       return report;
+    }),
+
+  delete: publicQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const idx = DEMO_REPORTS.findIndex(r => r.id === input.id);
+      if (idx > -1) DEMO_REPORTS.splice(idx, 1);
+      return { success: true };
     }),
 });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Fingerprint, Eye, EyeOff, Shield, Loader2 } from 'lucide-react';
+import { Fingerprint, Eye, EyeOff, Shield, Loader2, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -12,7 +12,6 @@ interface OfficerFromApi {
   firstName: string;
   lastName: string;
   rank: string;
-  status: string;
   stationName?: string;
 }
 
@@ -22,9 +21,10 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [badge, setBadge] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [authCode, setAuthCode] = useState('');
+  const [showCode, setShowCode] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
   // Fetch officers from dashboard API
   useEffect(() => {
@@ -33,52 +33,53 @@ export default function LoginScreen() {
       .then(data => {
         if (data?.officers) {
           setOfficers(data.officers);
-        } else {
-          // Fallback if API fails
-          setOfficers([
-            { id: 1, badgeNumber: '4521', firstName: 'Mohamed', lastName: 'Hassan', rank: 'colonel', status: 'active', stationName: 'Commissariat Central' },
-            { id: 2, badgeNumber: '3187', firstName: 'Ahmed', lastName: 'Omar', rank: 'brigadier', status: 'active', stationName: 'Commissariat Central' },
-            { id: 3, badgeNumber: '7214', firstName: 'Fatima', lastName: 'Daher', rank: 'chief_inspector', status: 'active', stationName: 'Poste de Police Balbala' },
-          ]);
         }
         setLoading(false);
       })
       .catch(() => {
-        setError('Cannot connect to server. Using offline mode.');
+        setError('Offline mode — using default officers');
         setOfficers([
-          { id: 1, badgeNumber: '4521', firstName: 'Mohamed', lastName: 'Hassan', rank: 'colonel', status: 'active', stationName: 'Commissariat Central' },
-          { id: 2, badgeNumber: '3187', firstName: 'Ahmed', lastName: 'Omar', rank: 'brigadier', status: 'active', stationName: 'Commissariat Central' },
-          { id: 3, badgeNumber: '7214', firstName: 'Fatima', lastName: 'Daher', rank: 'chief_inspector', status: 'active', stationName: 'Poste de Police Balbala' },
+          { id: 1, badgeNumber: '4521', firstName: 'Mohamed', lastName: 'Hassan', rank: 'colonel', stationName: 'Commissariat Central' },
+          { id: 2, badgeNumber: '3187', firstName: 'Ahmed', lastName: 'Omar', rank: 'brigadier', stationName: 'Commissariat Central' },
+          { id: 3, badgeNumber: '7214', firstName: 'Fatima', lastName: 'Daher', rank: 'chief_inspector', stationName: 'Poste de Police Balbala' },
         ]);
         setLoading(false);
       });
   }, []);
 
-  const handleLogin = (badgeNum: string, accessCode: string) => {
+  const handleLogin = async (badgeNum: string, code: string) => {
     setLoginError('');
-    const officer = officers.find(o => o.badgeNumber === badgeNum);
-    if (!officer) {
-      setLoginError('Officer not found. Please check badge number.');
-      return;
+    setLoggingIn(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ badgeNumber: badgeNum, authCode: code }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setLoginError(data.error || 'Invalid badge number or auth code');
+        setLoggingIn(false);
+        return;
+      }
+
+      login({
+        id: String(data.officer.id),
+        name: `${data.officer.firstName} ${data.officer.lastName}`,
+        badge: data.officer.badgeNumber,
+        rank: data.officer.rank,
+        sector: data.officer.stationName || 'Brigade des accidents',
+      });
+    } catch {
+      setLoginError('Network error. Check your connection.');
+      setLoggingIn(false);
     }
-    // Access code = badge number (e.g., badge 4521, code 4521)
-    if (accessCode !== officer.badgeNumber) {
-      setLoginError('Invalid access code.');
-      return;
-    }
-    login({
-      id: String(officer.id),
-      name: `${officer.firstName} ${officer.lastName}`,
-      badge: officer.badgeNumber,
-      rank: officer.rank,
-      sector: officer.stationName || 'Brigade des accidents',
-    });
   };
 
-  const handleQuickLogin = (officer: OfficerFromApi) => {
+  const handleQuickSelect = (officer: OfficerFromApi) => {
     setBadge(officer.badgeNumber);
-    setPassword(officer.badgeNumber); // Auto-fill for quick login
-    handleLogin(officer.badgeNumber, officer.badgeNumber);
   };
 
   return (
@@ -96,11 +97,11 @@ export default function LoginScreen() {
       </div>
 
       {/* Login Form */}
-      <div className="flex-1 px-6 pt-8 pb-6 animate-slide-up">
+      <div className="flex-1 px-6 pt-8 pb-6">
         <div className="text-center mb-8">
           <Shield className="w-12 h-12 text-blue-800 mx-auto mb-3" />
           <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">Officer Authentication</h2>
-          <p className="text-gray-500 text-sm mt-1">Enter your badge number and access code</p>
+          <p className="text-gray-500 text-sm mt-1">Enter your badge number and auth code</p>
         </div>
 
         {error && (
@@ -110,6 +111,7 @@ export default function LoginScreen() {
         )}
 
         <div className="space-y-4 max-w-sm mx-auto">
+          {/* Badge Number */}
           <div>
             <label className="text-sm font-semibold text-gray-700 mb-1.5 block uppercase tracking-wide">Badge Number</label>
             <div className="relative">
@@ -124,25 +126,28 @@ export default function LoginScreen() {
             </div>
           </div>
 
+          {/* Auth Code */}
           <div>
-            <label className="text-sm font-semibold text-gray-700 mb-1.5 block uppercase tracking-wide">Access Code</label>
+            <label className="text-sm font-semibold text-gray-700 mb-1.5 block uppercase tracking-wide">Auth Code</label>
             <div className="relative">
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter access code"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="pr-10 h-12 bg-gray-50 border-gray-200 text-gray-900"
+                type={showCode ? 'text' : 'password'}
+                placeholder="4-digit code from dashboard"
+                value={authCode}
+                onChange={e => setAuthCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                className="pl-10 pr-10 h-12 bg-gray-50 border-gray-200 text-gray-900"
+                maxLength={4}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowCode(!showCode)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showCode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">Access code = your badge number</p>
+            <p className="text-[10px] text-gray-400 mt-1">Get your auth code from the Admin Dashboard</p>
           </div>
 
           {loginError && (
@@ -153,14 +158,14 @@ export default function LoginScreen() {
 
           <Button
             className="w-full h-12 bg-blue-800 hover:bg-blue-900 text-white font-bold text-base uppercase tracking-wide"
-            onClick={() => badge && password && handleLogin(badge, password)}
-            disabled={!badge || !password}
+            onClick={() => badge && authCode && handleLogin(badge, authCode)}
+            disabled={!badge || !authCode || badge.length < 4 || authCode.length < 4 || loggingIn}
           >
-            Authenticate
+            {loggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Authenticate'}
           </Button>
         </div>
 
-        {/* Officers List */}
+        {/* Officers List — Quick Select */}
         <div className="mt-8 max-w-sm mx-auto">
           <p className="text-xs text-gray-400 text-center mb-3 uppercase tracking-widest font-semibold">
             {loading ? 'Loading officers...' : `Active Officers (${officers.length})`}
@@ -175,8 +180,12 @@ export default function LoginScreen() {
               {officers.map(officer => (
                 <button
                   key={officer.id}
-                  onClick={() => handleQuickLogin(officer)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition-colors text-left"
+                  onClick={() => handleQuickSelect(officer)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                    badge === officer.badgeNumber 
+                      ? 'bg-blue-50 border-blue-400' 
+                      : 'border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-300'
+                  }`}
                 >
                   <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold text-sm flex-shrink-0">
                     {officer.badgeNumber}
@@ -185,6 +194,9 @@ export default function LoginScreen() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{officer.firstName} {officer.lastName}</p>
                     <p className="text-xs text-gray-500 capitalize">{officer.rank} — {officer.stationName || 'PND'}</p>
                   </div>
+                  {badge === officer.badgeNumber && (
+                    <span className="ml-auto text-xs font-bold text-blue-700">Selected</span>
+                  )}
                 </button>
               ))}
             </div>

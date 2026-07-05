@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, FileText, CheckCircle, XCircle,
+  Search, FileText, CheckCircle, XCircle, Trash2,
   ChevronDown, ChevronUp, MapPin, Calendar, Clock
 } from "lucide-react";
 
@@ -21,7 +21,6 @@ const statusColors: Record<string, string> = {
   under_review: "bg-amber-100 text-amber-800",
   approved: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
-  archived: "bg-gray-100 text-gray-500",
 };
 
 export default function Reports() {
@@ -37,10 +36,10 @@ export default function Reports() {
     severity: severityFilter || undefined,
   });
 
-  const approveMutation = trpc.report.approve.useMutation({
+  const statusMutation = trpc.report.updateStatus.useMutation({
     onSuccess: () => { utils.report.list.invalidate(); utils.report.stats.invalidate(); },
   });
-  const rejectMutation = trpc.report.reject.useMutation({
+  const deleteMutation = trpc.report.delete.useMutation({
     onSuccess: () => { utils.report.list.invalidate(); utils.report.stats.invalidate(); },
   });
 
@@ -105,7 +104,7 @@ export default function Reports() {
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-bold text-sm text-gray-900">{report.reportId}</span>
                     <Badge className={`text-[10px] font-bold uppercase ${statusColors[report.status]}`}>
                       {report.status}
@@ -138,12 +137,12 @@ export default function Reports() {
                     <p className="font-semibold text-gray-700">{report.roadCondition || "N/A"}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
-                    <p className="text-gray-400">Lighting</p>
-                    <p className="font-semibold text-gray-700">{report.lighting || "N/A"}</p>
+                    <p className="text-gray-400">Type</p>
+                    <p className="font-semibold text-gray-700">{report.accidentType || "N/A"}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
                     <p className="text-gray-400">GPS</p>
-                    <p className="font-mono text-gray-700">{report.latitude?.toFixed(4)}, {report.longitude?.toFixed(4)}</p>
+                    <p className="font-mono text-gray-700">{report.latitude}, {report.longitude}</p>
                   </div>
                 </div>
 
@@ -154,33 +153,50 @@ export default function Reports() {
                   </div>
                 )}
 
-                {report.certified && (
-                  <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                    <p className="text-xs text-green-700 font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Certified by Officer
-                    </p>
-                  </div>
-                )}
-
-                {report.status === "submitted" || report.status === "under_review" ? (
-                  <div className="flex gap-2">
+                {/* Action Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {report.status !== "approved" && (
                     <Button
                       size="sm"
                       className="bg-green-700 hover:bg-green-800 text-white font-bold text-xs uppercase"
-                      onClick={() => approveMutation.mutate({ id: report.id, approvedBy: 1 })}
+                      onClick={() => statusMutation.mutate({ id: report.id, status: "approved" })}
+                      disabled={statusMutation.isPending}
                     >
                       <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve
                     </Button>
+                  )}
+                  {report.status !== "rejected" && (
                     <Button
                       size="sm"
                       variant="outline"
                       className="border-red-200 text-red-700 hover:bg-red-50 font-bold text-xs uppercase"
-                      onClick={() => rejectMutation.mutate({ id: report.id, reason: "Rejected by administrator" })}
+                      onClick={() => statusMutation.mutate({ id: report.id, status: "rejected" })}
+                      disabled={statusMutation.isPending}
                     >
                       <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
                     </Button>
-                  </div>
-                ) : null}
+                  )}
+                  {report.status !== "under_review" && report.status !== "submitted" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-200 text-amber-700 hover:bg-amber-50 font-bold text-xs uppercase"
+                      onClick={() => statusMutation.mutate({ id: report.id, status: "under_review" })}
+                      disabled={statusMutation.isPending}
+                    >
+                      <FileText className="w-3.5 h-3.5 mr-1" /> Review
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-200 text-gray-500 hover:bg-gray-50 font-bold text-xs uppercase ml-auto"
+                    onClick={() => { if (confirm("Delete this report?")) deleteMutation.mutate({ id: report.id }); }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                  </Button>
+                </div>
               </div>
             )}
           </div>
