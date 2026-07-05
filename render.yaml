@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: pnd-dashboard
+    runtime: node
+    plan: free
+    buildCommand: "echo 'Pre-built — skipping'"
+    startCommand: "node dist/boot.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: mysql://admin:password@localhost:3306/pnd_db
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: VITE_APP_ID
+        sync: false
+      - key: VITE_KIMI_AUTH_URL
+        sync: false
+      - key: KIMI_APP_SECRET
+        sync: false
+      - key: OWNER_UNION_ID
+        sync: false
